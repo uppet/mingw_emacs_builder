@@ -1,0 +1,43 @@
+# This is a basic workflow to help you get started with Actions
+
+name: build tag.txt and release to rel_tag.txt
+
+# Controls when the workflow will run
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+      - name: build mingw emacs from tag.txt file with shell script
+        shell: msys2 {0}
+        run: |
+          bash ./build_from_tag.sh
+      - name: Archive Release
+        uses: thedoctor0/zip-release@0.7.5
+        with:
+            type: 'zip'
+            filename: 'release.zip'
+            directory: 'emacs/emacs_bin_out'
+      - id: rel_tag_provider
+        name: ouputing info to next step
+        shell: msys2 {0}
+        run: |
+          echo rel_tag=`cat rel_tag.txt` >> "$GITHUB_OUTPUT"
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "emacs/emacs_bin_out/release.zip"
+          tag: ${{ steps.rel_tag_provider.outputs.rel_tag }}
